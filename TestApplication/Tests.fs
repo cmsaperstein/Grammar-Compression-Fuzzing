@@ -1,7 +1,4 @@
-﻿// Learn more about F# at http://fsharp.net
-// See the 'F# Tutorial' project for more help.
-
-open System.IO
+﻿open System.IO
 open Grammar
 open Grammar.Utils
 open SLSTree.Tree
@@ -9,23 +6,25 @@ open LFS.LFS
 open Fuzzing.Fuzzing
 open FsCheck
 
-let randString size =  
-    let rand = new System.Random()
+let randString (rand:System.Random) size =  
     let sb = new System.Text.StringBuilder()
     for i in [0 .. size-1] do
         let randChar = rand.Next(65,125) |> char
         sb.Append(randChar) |> ignore
     sb.ToString()
 
-let randSub dummyFun (str:string) = 
+let randSub (rand:System.Random) dummyFun (str:string) = 
     let size = str.Length
-    let rand = new System.Random()
-    let randChar = rand.Next(65,122) |> char
+    let randChar = rand.Next(65,125) |> char
     let randLoc = rand.Next(0,size-1)
     (randLoc, randChar)
 
-let stringSliceGenerator (inString:string) size = 
-    inString.[0..size-1] 
+let identity dummyFun (str:string) = 
+    (-1, ' ')
+
+let stringSliceGenerator (inString:string) (rand:System.Random) size = 
+    let startLoc = rand.Next(0,inString.Length - size) 
+    inString.[startLoc..startLoc + size-1] 
 
 let rec indexesAllSubstringsH (tree:SLSTree.SLSTree) (s:string) i j finish = 
     if i >= finish then 
@@ -158,30 +157,74 @@ let graphSizeVsNumReductions reduceFun lfsFun textGenerator fileName size =
             debugInput <- input
         outFile.Flush()
     outFile.Close()
-        
 
-let dataCollection() = 
+let dataGeneration() = 
+    let folder = "C:\\Users\\Craig\\Documents\\Cambridge\\CS\\Part II Project\\texts\\"
+    let shakespeareText = File.ReadAllText("C:\\Users\\Craig\\Desktop\\data\\shakespeare.txt")
+    let shakespeareGenerator = stringSliceGenerator shakespeareText
+    let size = 5000
+    let numTrials = 1000
+
+    let rand = System.Random()
+
+    for trial in [0 .. numTrials] do
+        for textGen, textName in [(shakespeareGenerator rand,"shakespeare"); (randString rand, "rand") ] do
+            let text = textGen size
+            let trialName = textName + "_" +  (string trial)
+            let outFile = new StreamWriter(folder + trialName)
+            outFile.Write(text)
+            outFile.Close()
+    ()
+
+let experimentPercentageCharFuzzing() = 
+    let inFolder = "C:\\Users\\Craig\\Documents\\Cambridge\\CS\\Part II Project\\texts\\"
+    let outFolder = "C:\\Users\\Craig\\Documents\\Cambridge\\CS\\Part II Project\\fuzzing-data\\"
+    let files = Directory.GetFiles(inFolder)
+
+    let rand = new System.Random()
+    let numReductions = 20
+
+    for lfsFun, lfsName in [(LFS1, "lfs1"); (LFS2, "lfs2"); (LFS3, "lfs3")] do
+        for reduceFun, reduceName in [(randSub rand, "randomSub"); (EdgeJoiningReduce,"edgeJoiningReduce"); ] do
+            let description = lfsName + "_" +  reduceName + "_"  
+            let outShake = new StreamWriter(outFolder + description + "shake")
+            let outRand = new StreamWriter(outFolder + description + "rand")
+            for file in files do
+                let mutable text = (new StreamReader(file)).ReadToEnd()
+                let originalSize =  lfsFun text |> GrammarSize
+                for i in [1..numReductions] do
+                    text <- PerformSub (reduceFun lfsFun text) text
+                let difference = originalSize - (lfsFun text |> GrammarSize ) 
+                if file.Contains("shake") then 
+                    outShake.WriteLine(string difference)
+                else if file.Contains("rand") then 
+                    outRand.WriteLine(string difference)
+            outShake.Close()
+            outRand.Close()
+    ()
+let longTests() = 
     printfn "starting tests"
     let shakespeareText = File.ReadAllText("C:\\Users\\Craig\\Desktop\\data\\shakespeare.txt")
     let shakespeareGenerator = stringSliceGenerator shakespeareText
+    let rand = new System.Random()
     
     printfn "testing grammar fuzzing time performancce"
     for reduceFun, reduceName in [(EdgeJoiningReduce,"edgeJoiningReduce"); (GrammarBLASTReduceApprox, "blastReduce")] do
-        for textGen, textName in [(shakespeareGenerator,"shakespeare"); (randString, "rand") ] do
+        for textGen, textName in [(shakespeareGenerator rand,"shakespeare"); (randString rand, "rand") ] do
             let description = reduceName + "_lfs1_" + "time" + "_" + textName
             graphTimeGrammarReduce (reduceFun LFS1) textGen description
             printfn "completed:%s" description
     
     printfn "starting time tests"
     for lfsFun, lfsName in [(LFS1, "lfs1"); (LFS2, "lfs2"); (LFS3, "lfs3")] do
-        for textGen, textName in [(randString, "rand"); (shakespeareGenerator,"shakespeare")] do
+        for textGen, textName in [(randString rand, "rand"); (shakespeareGenerator rand,"shakespeare")] do
             let description = lfsName + "_" + "time" + "_" + textName
             graphTimeLFS lfsFun textGen description
             printfn "completed:%s" description
     
     printfn "starting compression ratio tests"
     for lfsFun, lfsName in [(LFS1, "lfs1"); (LFS2, "lfs2"); (LFS3, "lfs3")] do
-        for textGen, textName in [(randString, "rand"); (shakespeareGenerator,"shakespeare")] do
+        for textGen, textName in [(randString rand, "rand"); (shakespeareGenerator rand,"shakespeare")] do
             let description = lfsName + "_" + "compressionRatio" + "_" + textName
             graphCompressionRatioLFS lfsFun textGen description
             printfn "completed:%s" description
@@ -189,20 +232,22 @@ let dataCollection() =
     printfn "starting delta string tests"    
     for lfsFun, lfsName in [(LFS1, "lfs1"); (LFS2, "lfs2"); (LFS3, "lfs3")] do
         for reduceFun, reduceName in [(GrammarReduce1, "perfectReduce"); (EdgeJoiningReduce,"edgeJoiningReduce"); (GrammarBLASTReduceApprox, "blastReduce")] do
-            for textGen, textName in [(randString, "rand"); (shakespeareGenerator,"shakespeare")] do
+            for textGen, textName in [(randString rand, "rand"); (shakespeareGenerator rand,"shakespeare")] do
                 let description = (lfsName + "_" +  reduceName + "_" + textName )
                 graphSizeVsNumReductions (reduceFun lfsFun) lfsFun textGen description 30
                 printfn "completed:%s" description
       
     printfn "starting large delta tests"
-    for lfsFun, lfsName in [(*(LFS1, "lfs1"); (LFS2, "lfs2");*) (LFS3, "lfs3")] do
-        for reduceFun, reduceName in [(*(randSub, "randomSub")*)(EdgeJoiningReduce,"edgeJoiningReduce"); (*(GrammarBLASTReduceApprox, "blastReduce")*)] do
-            for textGen, textName in [(randString, "rand"); (*(shakespeareGenerator,"shakespeare")*)] do
+    for lfsFun, lfsName in [(LFS1, "lfs1"); (LFS2, "lfs2"); (LFS3, "lfs3")] do
+        for reduceFun, reduceName in [(randSub rand, "randomSub"); (EdgeJoiningReduce,"edgeJoiningReduce"); (GrammarBLASTReduceApprox, "blastReduce")] do
+            for textGen, textName in [(randString rand, "rand"); (shakespeareGenerator rand,"shakespeare")] do
                 let description = lfsName + "_" +  reduceName + "_" + textName + "_large" 
                 graphSizeVsNumReductions (reduceFun lfsFun) lfsFun textGen description 15
                 printfn "completed:%s" description
     
 [<EntryPoint>]
 let main argv = 
-    dataCollection()
+    dataGeneration()
+    experimentPercentageCharFuzzing()
+    longTests()
     0

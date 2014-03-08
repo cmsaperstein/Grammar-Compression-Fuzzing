@@ -8,6 +8,14 @@ open Grammar
 
 	However, the code is entirely original
 *) 
+///   <summary> Represents a node in a  suffix tree. This data structure is capable of efficiently indexing strings, determining if
+/// string m is present in O(len(m)) time
+///   </summary>
+///  <param name = "beg_i"> Beginning position in the input that this node indexes </param>
+///  <param name = "end_i"> End position in the input that this node indexes </param>
+///  <param name = "s_link"> Suffix links in the suffix tree </param>
+///  <param name = "parent"> A link to the parent node for convenience. This is useful in node deletion, but not strictly necessary </param>
+///  <param name = "children"> Children nodes in the suffix tree. Symbol is the beginning edge character, int is the index of the child in nodes </param>
 
 type Node = {
     mutable beg_i : int
@@ -16,6 +24,11 @@ type Node = {
     mutable parent : int 
     mutable children : Dictionary<Symbol, int> 
     }
+
+///  <summary> The overall suffix tree structure. 
+///  </summary>
+///  <param name = "data"> Input string being indexed by the tree </param>
+///  <param name = "nodes"> The structure of the tree </param>
 
 type STree = {
     data : Symbol [] 
@@ -85,11 +98,10 @@ module Tree =
             children = new Dictionary<Symbol, int>()}
         Array.create length defaultNode 
 
-    // Add a suffix link when a second internal node has been created 
+    // Add a suffix link when a second internal node has been created in the insertion of the same suffix
     let UpdateSuffixLink tree actPoint node = 
         if actPoint.needs_link > 0 then
            tree.nodes.[actPoint.needs_link].s_link <- node
-           //printf "\t%s" "adding a suffix link"
         actPoint.needs_link <- node 
 
     (*
@@ -107,16 +119,16 @@ module Tree =
         let nextNode = tree.nodes.[actPoint.current_node].s_link
         actPoint.remainder <- actPoint.remainder - 1
         actPoint.passed_over <- actPoint.passed_over + 1
+        // inserted from the root and staying at the root
         if actPoint.current_node = 0 then
-           //printf "\t%s" "at root and staying there"
            if actPoint.a_length > 0 then
               actPoint.a_length <- actPoint.a_length - 1 
            actPoint.a_edge <- actPoint.passed_over 
+        // follow the suffix link
         else if nextNode > 0 then
-          // printf "\t%s" "folowing suffix link"
            actPoint.current_node <- nextNode
+        // return to root
         else
-           //printf "\t%s" "returning to root"
            actPoint.current_node <- 0
            actPoint.a_edge <- actPoint.passed_over 
 
@@ -136,12 +148,10 @@ module Tree =
                            children.Add(c,n)
                            tree.nodes.[n].parent <- actPoint.current_node
                            FollowSuffixLink tree actPoint
-                           //printf "\t%s" "inserted at current node"
                 | true  -> // found child and continuing along the edge
                            actPoint.a_length <- actPoint.a_length + 1
                            actPoint.remainder <- actPoint.remainder + 1
                            actPoint.needs_link <- -1 
-                           //printf "\t%s" "found child and going along edge"
         )
        
     // The situations Gusfield describes in his Suffix Tree construction algorithm 
@@ -160,16 +170,13 @@ module Tree =
                         actPoint.current_node <- compNodeRef
                         actPoint.a_edge <- actPoint.a_edge + (compNode.end_i - compNode.beg_i) 
                         actPoint.a_length <- actPoint.a_length - (compNode.end_i - compNode.beg_i)
-                        //printf "\t%s" "overtaking"
                    // if the edge is the same, continue walking down 
                    elif tree.data.[compNode.beg_i + n] = c then
                         actPoint.a_length <- actPoint.a_length + 1
                         actPoint.remainder <- actPoint.remainder + 1
                         actPoint.needs_link <- -1
-                        //printf "\t%s: char=%c" "walking down" c
                    // otherwise, break the edge and add a two new nodes at the break point 
                    else
-                        //printf "\t%s" "splitting the node"
                         // Edge from i to j is broken at element k
                         let i = compNode.beg_i
                         let j = compNode.end_i
@@ -207,14 +214,11 @@ module Tree =
             // indicate that something more needs to be inserted
             // if we are on the last substriing to insert and it has already occured in the tree, keep incrementing 
             if actPoint.a_edge + actPoint.a_length < tree.data.Length then
-                //printf "current=%c \t" tree.data.[actPoint.a_edge] 
-                //printActPoint actPoint
                 AddChar tree actPoint
             else
-                //printActPoint actPoint
                 actPoint.passed_over <- tree.data.Length + 1
-            //printfn "%s" ""
-        // post processing step: replace all -2 end indices with the lengh of the input 
+        // post processing step: replace all -2 end indices with the lengh of the input. -2 Formerly was used as a placeholder for the
+        // end index of leaf nodes
         for i in 0..tree.nodes.Length-1 do
             if tree.nodes.[i].end_i < 0 then
                tree.nodes.[i].end_i <- tree.data.Length
@@ -242,8 +246,11 @@ module Tree =
                   else
                      -1
 
+    // determine if tree indexes the string input
     let Contains tree input =
         (ContainsH tree input 0) >= 0
 
+    // find the node that occurs when input is spelled out in the tree. If there is no exact match, the parent of the edge being followed
+    // at the end will be returned.
     let FindNode tree input =
         ContainsH tree input 0

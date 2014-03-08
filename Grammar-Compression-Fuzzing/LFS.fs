@@ -8,12 +8,13 @@ open SLSTree.Tree
 open System.IO
 
 module LFS = 
-
+    /// Gives the ratio of the number of non-dead output symbols to non-dead input symbols
     let CompressionRatio baseRule otherRules = 
         let outputSize = CountAlive baseRule + CountAlive otherRules
         let inputSize = baseRule.Length - 1
         (float outputSize) / (float inputSize)
 
+    /// Translates the array for of grammar rules, where each rule is divided with an <End i> character to a hashmap of rules
     let RulesToHashMap (rules:Symbol []) = 
         let rulesHash = new Dictionary<Symbol, Symbol []>()
         let mutable ruleStart = 0
@@ -26,6 +27,7 @@ module LFS =
             |   _ -> ruleEnd <- ruleEnd + 1
         rulesHash
 
+    /// Given the rules hash map, find the base rule, and substitute in grammar rules until the uncompressed input is found
     let DecompressRulesHashMap (rules:Dictionary<Symbol, Symbol[]>) =
         let mutable maxNonterm = 0
         // work from last rule to avoid non-constant stack depth
@@ -115,6 +117,37 @@ module LFS =
         wr.Write(outString)
         wr.Close()
 
+    let OutputOriginal (s:string)  = 
+        let outString = s 
+        let wr = new StreamWriter("C:\\Users\\Craig\\Desktop\\original.txt", false)
+        wr.Write(outString)
+        wr.Close()
+
+    /// Perform LFS on a string, assigning nonterminals with nontermStart and concatenating them in a string separated by endTermStart
+    let LFSPass xs nontermStart endtermStart = 
+        let slstree = MKSLSTree xs 
+        let mutable len = xs.Length
+        let mutable nonterm = nontermStart
+        let mutable endSymbol = endtermStart 
+        let mutable rules = new List<Symbol> ()
+        while len > 1 do
+            if slstree.bins.ContainsKey len then
+                let bin = slstree.bins.[len]
+                for nodeRef in bin do
+                    let node = GetNode slstree nodeRef
+                    UpdateFromChildren slstree nodeRef 
+                    let replacedString = ReplaceAllInstances slstree nodeRef nonterm endSymbol
+                    if replacedString.Length > 0 then
+                       rules.AddRange(replacedString)
+                       rules.Add(End endSymbol) 
+                       nonterm <- nonterm + 1
+                       endSymbol <- endSymbol + 1
+                slstree.bins.Remove(len) |> ignore
+            else
+                len <- len - 1
+        (slstree.data, rules.ToArray(), nonterm, endSymbol)
+
+
     /// Run LFS1 on the input
     let LFS1 (xs:string) = 
         let xSymbols = Array.append (LiftSymbol xs) (List.toArray [End 0])
@@ -144,6 +177,7 @@ module LFS =
         let (lfs3Base, lfs3RulesWithBase) = RemoveRedundancy lfs3BaseBeforeReduction lfs3Rules
         let lfs3OtherRules = lfs3RulesWithBase.[ FindEndIndex lfs3RulesWithBase 0 + 1.. lfs3RulesWithBase.Length-1]
         OutputRules lfs3Base lfs3OtherRules
+        OutputOriginal xs
         (lfs3Base, lfs3OtherRules)
 
     /// Given a grammar, output the plaintext that this grammar corresponds to.

@@ -79,6 +79,9 @@ module Utils =
             | _ -> ()
         count
 
+    let GrammarSize (baseRule:Symbol[], otherRules:Symbol[]) =  
+        CountAlive baseRule + CountAlive otherRules 
+
     /// Take a symbol array and return another without any "nothing symbols"
     let RemoveNothings (xs: Symbol[]) = 
         let newLength = xs.Length - CountDead xs
