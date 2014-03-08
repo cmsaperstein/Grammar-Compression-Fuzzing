@@ -247,7 +247,21 @@ let longTests() =
     
 [<EntryPoint>]
 let main argv = 
-    dataGeneration()
-    experimentPercentageCharFuzzing()
-    longTests()
+    let inString1 = "abcdabcd_abab_cd" 
+    printfn "Now Showing a demo of different aspects of the project"
+    printfn "----------------------------------------------------------------"
+    printfn "Starting with the grammar compression algorithms"
+    printfn "The initial string is: %s" inString1
+    for lfsFun, lfsName in [(LFS1, "LFS1"); (LFS2, "LFS2"); (LFS3, "LFS3")] do
+        printfn "%s:" lfsName
+        lfsFun inString1 |> RulesPairToString |> printfn "%s"
+    printfn "----------------------------------------------------------------"
+    let inString2 = "abcabcqbc" 
+    printfn "Now showing the grammar fuzzing algorithms"
+    printfn "The initial string is: %s\n" inString2
+    for reduceFun, reduceName in [(GrammarReduce1, "Perfect Fuzz"); (EdgeJoiningReduce,"Edge Clustering Fuzz"); (GrammarBLASTReduceApprox, "BLAST Fuzz")] do
+        printfn "When this input string is fuzzed with %s, the result is:" reduceName 
+        let (subLoc, subChar) = reduceFun LFS1 inString2
+        printfn "at location %d the the character %c is substituted" subLoc subChar
+        PerformSub (subLoc, subChar) inString2 |> printfn "the result of this is: %s\n"
     0

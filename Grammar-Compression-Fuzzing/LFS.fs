@@ -111,6 +111,9 @@ module LFS =
         
         baseRuleSB.ToString() + "\n\n" + otherRulesSB.ToString()
 
+    let RulesPairToString (baseRule, otherRules) = 
+        RulesToString baseRule otherRules
+
     let OutputRules baseRule otherRules = 
         let outString = RulesToString baseRule otherRules
         let wr = new StreamWriter("C:\\Users\\Craig\\Desktop\\outputgrammar.txt", false)
