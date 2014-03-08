@@ -180,11 +180,6 @@ module Fuzzing =
                 let mutable rightWalkChanged = false
                 while leftWalkChanged || rightWalkChanged do
                     if subLoc > matchLoc then
-                       // make sure that the substitution being considered doesnt overlap with an already existing substitution
-                       //if not(IsTerm lfsBase.[subLoc - leftWalk]) then
-                          //leftWalkChanged <- false 
-                       //if not(IsTerm lfsBase.[subLoc + rightWalk]) then
-                          //rightWalkChanged <- false
                        if leftWalkChanged &&  // still expanding left
                           (matchLoc + rightWalk < subLoc - leftWalk) && // not double counting expanded area
                           (matchLoc-leftWalk > 0) && // still room to move left
