@@ -9,6 +9,7 @@ Important Code
 -------------
 Most of the important code is in Grammar-Compression-Fuzzing. The test suite is in TestApplication.
  
+ 
 
 Installation
 --------------
@@ -16,6 +17,10 @@ Installation
 Download everything and open Grammar-Compression-Fuzzing.sln with Visual Studio. The IDE will be able to fetch the needed packages for your from the NuGet information.
 
 At the moment, the project is configured to run a short demo of grammar compression and fuzzing features. You can do this by clicking the green run button in Visual Studio.
+
+Initial Algorithm Ideas
+-------------
+The initial algorithm ideas came from a paper by Nakamura et. al. entitled "Linear-Time Text Compression by Longest-First Substitution" 
 
 License
 ----
