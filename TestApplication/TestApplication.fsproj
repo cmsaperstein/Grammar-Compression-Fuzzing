@@ -51,9 +51,10 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Tests.fs" />
     <None Include="App.config" />
     <None Include="packages.config" />
+    <Compile Include="Demo.fs" />
+    <Compile Include="Tests.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Grammar-Compression-Fuzzing\Grammar-Compression-Fuzzing.fsproj">

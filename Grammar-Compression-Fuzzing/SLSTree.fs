@@ -207,7 +207,6 @@ module Tree =
     let ReplaceAllInstances slstree nodeRef nonterm endSymbol =
         let mutable replacedString = List.toArray [] 
         let node = GetNode slstree nodeRef
-
         // no positions of this node remaining
         if node.num_beg_pos = 0 then
             DeleteNode slstree nodeRef
@@ -216,6 +215,10 @@ module Tree =
         elif node.max_beg_pos - node.min_beg_pos < node.pathlen then
             node.children.Clear()
         else
+            if (node.pathlen > 2 && (IsDead slstree (node.min_beg_pos + node.pathlen - 1) || IsDead slstree (node.max_beg_pos + node.pathlen - 1))) then
+                node.pathlen <- node.pathlen-1
+            if (node.pathlen > 2 && (IsDead slstree (node.min_beg_pos + node.pathlen - 1) || IsDead slstree (node.max_beg_pos + node.pathlen - 1))) then
+                node.pathlen <- node.pathlen-1
             // if there is a replacement to be made
             let mutable replaceList = new List<int>() 
             for cRef in node.children.Values do

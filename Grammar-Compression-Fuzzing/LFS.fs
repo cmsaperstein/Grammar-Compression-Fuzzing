@@ -101,7 +101,7 @@ module LFS =
         for s in otherRules do
             match s with 
             | Nothing -> () 
-            | End x -> otherRulesSB.Append("A_{"+string x+"} -> ")
+            | End x -> otherRulesSB.Append("A_{"+string x+"}->")
                                    .Append(currentRule.ToString() + "\n") |> ignore
                        if currentRule.Length < 2 then
                           printfn "error: rule has length less than 2"

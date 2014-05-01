@@ -202,6 +202,7 @@ let experimentPercentageCharFuzzing() =
             outShake.Close()
             outRand.Close()
     ()
+
 let longTests() = 
     printfn "starting tests"
     let shakespeareText = File.ReadAllText("C:\\Users\\Craig\\Desktop\\data\\shakespeare.txt")
@@ -245,8 +246,7 @@ let longTests() =
                 graphSizeVsNumReductions (reduceFun lfsFun) lfsFun textGen description 15
                 printfn "completed:%s" description
     
-[<EntryPoint>]
-let main argv = 
+let personalDemo () =
     let inString1 = "abcdabcd_abab_cd" 
     printfn "Now Showing a demo of different aspects of the project"
     printfn "----------------------------------------------------------------"
@@ -264,4 +264,31 @@ let main argv =
         let (subLoc, subChar) = reduceFun LFS1 inString2
         printfn "at location %d the the character %c is substituted" subLoc subChar
         PerformSub (subLoc, subChar) inString2 |> printfn "the result of this is: %s\n"
+
+    printfn "----------------------------------------------------------------"
+    printfn "Now compressing a message"
+    let shakespeareText = File.ReadAllText("C:\\Users\\Craig\\Desktop\\message.txt")
+    let outFile = new StreamWriter("C:\\Users\\Craig\\Desktop\\message-compressed.txt")
+    LFS3 shakespeareText |> RulesPairToString |> outFile.Write
+    outFile.Close()
+    printfn "done"
+
+[<EntryPoint>]
+let main argv = 
+    let compressMessage = "C:\\Users\\Craig\\Desktop\\demo\\message.txt" 
+    let text = File.ReadAllText compressMessage
+    for lfsFun, lfsName in [(LFS1, "LFS1"); (LFS2, "LFS2"); (LFS3, "LFS3")] do
+       let out = new StreamWriter (compressMessage + lfsName)
+       let (baseRule, otherRules) = lfsFun text
+       out.Write(RulesToString baseRule otherRules);
+       out.Close();
+       printfn "%s compression ratio: %f" lfsName (CompressionRatio baseRule otherRules)
+
+//    let fuzzMessage =  "C:\\Users\\Craig\\Desktop\\demo\\fuzz-message.txt" 
+//    let text = File.ReadAllText fuzzMessage
+//    let substitution = EdgeJoiningReduce LFS3 text
+//    let fuzzedText = PerformSub substitution text
+//    let out = new StreamWriter (fuzzMessage + "-fuzzed")
+//    out.Write(fuzzedText);
+//    out.Close();
     0
